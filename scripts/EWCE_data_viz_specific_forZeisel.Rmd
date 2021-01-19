@@ -1,0 +1,138 @@
+---
+title: "Dataviz_generator"
+author: "Jake Herb"
+date: "8/22/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setting up libraries}
+#Listing the packages available on CRAN that are needed for this analysis. 
+#If the package is not already installed, it will be installed
+list_of_cran_packages <- c("devtools","tidyverse","cowplot","limma","readxl","future","magrittr","janitor","loomR")
+
+
+for (count in c(1:length(list_of_cran_packages))){
+  if (!list_of_cran_packages[count] %in% rownames(installed.packages())) {
+  install.packages(list_of_cran_packages[count])
+  }
+}
+
+#Attaching these packages that we just loaded into the library
+library(devtools)
+library(tidyverse)
+library(cowplot)
+library(limma)
+library(readxl)
+library(future)
+library(magrittr)
+library(janitor)
+library(loomR)
+
+#This install is not on CRAN, so I download directly from the source website
+###If something goes wrong please install XML 3.98-1.1 from the legacy site. here :https://urldefense.proofpoint.com/v2/url?u=http-3A__www.omegahat.net_RSXML_&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=BAuu5HVgvj0r_G7iG1wh-RxE3hObmx7cRS7vaBnKVFo&e= 
+if(!"XML" %in% rownames(installed.packages())){
+  download.file("https://urldefense.proofpoint.com/v2/url?u=http-3A__www.omegahat.net_RSXML_XML-5F3.98-2D1.tar.gz&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=xRVELMGEjt2dwt_exZ63xZBxAVTNfvd4Co9Hk4UQVa0&e= ")
+}
+library(XML)
+  
+#Install and attach EWCE
+if(!"EWCE" %in% rownames(installed.packages())){
+  install_github("nathanskene/ewce")
+}  
+library(EWCE)
+```
+
+```{r loading source data}
+#Load count matrix
+load("EWCE_output_cerebellum_ALS.RData")
+cerebellum_results <- ewce_final_results 
+
+load("EWCE_output_cortex_ALS.RData")
+cortex_results <- ewce_final_results 
+
+load("EWCE_output_spinal_cord_ALS.RData")
+spinalcord_results <- ewce_final_results 
+```
+
+```{r temporary}
+my_results <- list(1:8)
+```
+```{r data preprocessing}
+cerebellum_results$ewce_expression_output$Cerebellum$level2_output$Tissue <- "Cerebellum"
+my_results[[1]] <- cerebellum_results$ewce_expression_output$Cerebellum$level2_output
+
+cortex_results$ewce_expression_output$Frontal_Cortex$level2_output$Tissue <- "Cortex Frontal"
+my_results[[2]] <- cortex_results$ewce_expression_output$Frontal_Cortex$level2_output 
+
+cortex_results$ewce_expression_output$Lateral_Motor_Cortex$level2_output$Tissue <- "Cortex Motor Lateral"
+my_results[[3]] <- cortex_results$ewce_expression_output$Lateral_Motor_Cortex$level2_output 
+
+cortex_results$ewce_expression_output$Medial_Motor_Cortex$level2_output$Tissue <- "Cortex Motor Medial"
+my_results[[4]] <- cortex_results$ewce_expression_output$Medial_Motor_Cortex$level2_output 
+
+cortex_results$ewce_expression_output$Temporal_Cortex$level2_output$Tissue <- "Cortex Temporal"
+my_results[[5]] <- cortex_results$ewce_expression_output$Temporal_Cortex$level2_output 
+
+cortex_results$ewce_expression_output$Cervical_Spinal_Cord$level2_output$Tissue <- "Spinal Cord Cervical"
+my_results[[6]] <- cortex_results$ewce_expression_output$Cervical_Spinal_Cord$level2_output 
+
+cortex_results$ewce_expression_output$Thoracic_Spinal_Cord$level2_output$Tissue <- "Spinal Cord Thoracic"
+my_results[[7]] <- cortex_results$ewce_expression_output$Thoracic_Spinal_Cord$level2_output 
+
+cortex_results$ewce_expression_output$Lumbar_Spinal_Cord$level2_output$Tissue <- "Spinal Cord Lumbar"
+my_results[[8]] <- cortex_results$ewce_expression_output$Lumbar_Spinal_Cord$level2_output 
+```
+
+```{r preprocessing data}
+
+combined_df <- my_results 
+
+if(length(combined_df) < 1){
+  bound_df <- combined_df[[1]]
+  } else{
+    for(i in c(1:(length(combined_df)-1))){
+      combined_df[[i+1]] <- rbind(combined_df[[i]], combined_df[[i + 1]])
+    }
+  }
+  bound_df <- combined_df[[length(combined_df)]]
+  bound_df$Direction <- as.character(bound_df$Direction)
+  bound_df$ask <- ""
+  
+  for(count in c(1:length(bound_df$fold_change))){
+    if(bound_df$p[count] < (0.05/length(bound_df$p))){bound_df$ask[count] <- "*"}
+  }
+  
+  bound_df$num_tissues <- 0
+  
+  for(i in c(1:dim(bound_df)[[1]])){
+    current_cell_type <- bound_df$CellType[i]
+    bound_df$num_tissues[i] <- dim(bound_df %>% filter(CellType %in% current_cell_type))[[1]]/2
+  }
+    
+  bound_df$CellType <- factor(bound_df$CellType, levels = unique(bound_df$CellType[rev(order(bound_df$num_tissues))]))
+  
+  geom_tile <- bound_df %>% ggplot(aes(y = CellType, x = Tissue)) +
+    theme_classic() + 
+    geom_tile(aes(fill = Direction, alpha = sd_from_mean)) + 
+    facet_wrap(~ Direction, ncol =1) + 
+    scale_x_discrete(expand = c(0,0)) + 
+    scale_y_discrete( expand = c(0,0)) +
+    geom_text(aes(label = ask)) +
+    ylim(rev(levels(bound_df$CellType))) +
+    ggtitle("heatmap_title")
+  
+  ggsave(geom_tile, height = 10, width = 15, filename = "heatmap_tile_num.pdf")
+  
+```
+
+```{r running function}
+source("EWCE_data_viz_function.R", local = knitr::knit_global())
+EWCE_heatmap(tissue_columns,tissue_names, 2, "template")
+
+```
+

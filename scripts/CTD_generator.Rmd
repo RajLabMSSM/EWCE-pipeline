@@ -1,0 +1,76 @@
+---
+title: "CTD_Generator"
+author: "Jake Herb"
+date: "8/22/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setting up libraries}
+#Listing the packages available on CRAN that are needed for this analysis. 
+#If the package is not already installed, it will be installed
+list_of_cran_packages <- c("devtools","tidyverse","cowplot","limma","readxl","future","magrittr","janitor","loomR")
+
+
+for (count in c(1:length(list_of_cran_packages))){
+  if (!list_of_cran_packages[count] %in% rownames(installed.packages())) {
+  install.packages(list_of_cran_packages[count])
+  }
+}
+
+#Attaching these packages that we just loaded into the library
+library(devtools)
+library(tidyverse)
+library(cowplot)
+library(limma)
+library(readxl)
+library(future)
+library(magrittr)
+library(janitor)
+library(loomR)
+
+#This install is not on CRAN, so I download directly from the source website
+###If something goes wrong please install XML 3.98-1.1 from the legacy site. here :https://urldefense.proofpoint.com/v2/url?u=http-3A__www.omegahat.net_RSXML_&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=BAuu5HVgvj0r_G7iG1wh-RxE3hObmx7cRS7vaBnKVFo&e= 
+if(!"XML" %in% rownames(installed.packages())){
+  download.file("https://urldefense.proofpoint.com/v2/url?u=http-3A__www.omegahat.net_RSXML_XML-5F3.98-2D1.tar.gz&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=xRVELMGEjt2dwt_exZ63xZBxAVTNfvd4Co9Hk4UQVa0&e= ")
+}
+library(XML)
+  
+#Install and attach EWCE
+if(!"EWCE" %in% rownames(installed.packages())){
+  install_github("nathanskene/ewce")
+}  
+library(EWCE)
+```
+
+
+
+```{r loading source data}
+
+#Load count matrix
+load("YOUR_COUNTS_MATRIX.Rda")
+
+#Load annotations list
+load("YOUR_ANNOTATIONS_LIST.Rda")
+```
+
+```{r data preprocessing if necessary}
+#change your data formats here if you need
+```
+
+```{r running function}
+#expression_df = Your expression matrix in dataframe format
+#annotation_levels = A list of the celltype annotations of cells must row/column dimension match the counts matrix 
+#is_mouse = boolean TRUE FLASE
+#output_name_include_dot_rda = Include a descriptive name here to meet your needs "MY_NAME.rda"
+source("CTD_generator_function.R", local = knitr::knit_global())
+
+generate_CTD(EXPRESSION_DF, ANNOTATION_LEVELS, TRUE/FALSE , ".rda")
+```
+
+
+

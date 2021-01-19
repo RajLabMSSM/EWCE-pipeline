@@ -1,0 +1,80 @@
+---
+title: "testing EWCE things"
+author: "Jake Herb"
+date: "8/13/2020"
+output: html_document
+---
+
+Setting R Markdown Settings
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r print version}
+###This analysis pipeline is made to work with R 3.6.3
+###If you are not running R 3.6.3, go to the installer package that is downloaded here and follow the instructions
+if (!R.version$version.string == "R version 3.6.3 (2020-02-29)"){ download.file("https://urldefense.proofpoint.com/v2/url?u=https-3A__cran.r-2Dproject.org_bin_macosx_R-2D3.6.3.nn.pkg-2522-2C-2522R-5Fversion-5F3.6.3.nn.pkg&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=AjxuE01FKn-Zr9PMhtJW4zeqfeocW0CZBRXHOLoX-ZE&e= ")
+  } 
+
+(R.version$version.string)
+```
+
+```{r setting up libraries}
+#Listing the packages available on CRAN that are needed for this analysis. 
+#If the package is not already installed, it will be installed
+list_of_cran_packages <- c("devtools","tidyverse","cowplot","limma","readxl","future","magrittr","janitor","ggplot2")
+
+
+for (count in c(1:length(list_of_cran_packages))){
+  if (!list_of_cran_packages[count] %in% rownames(installed.packages())) {
+  install.packages(list_of_cran_packages[count])
+  }
+}
+
+#Attaching these packages that we just loaded into the library
+library(devtools)
+library(tidyverse)
+library(cowplot)
+library(limma)
+library(readxl)
+library(future)
+library(magrittr)
+library(janitor)
+library(ggplot2)
+#This install is not on CRAN, so I download directly from the source website
+###If something goes wrong please install XML 3.98-1.1 from the legacy site. here :https://urldefense.proofpoint.com/v2/url?u=http-3A__www.omegahat.net_RSXML_&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=BAuu5HVgvj0r_G7iG1wh-RxE3hObmx7cRS7vaBnKVFo&e= 
+if(!"XML" %in% rownames(installed.packages())){
+  download.file("https://urldefense.proofpoint.com/v2/url?u=http-3A__www.omegahat.net_RSXML_XML-5F3.98-2D1.tar.gz&d=DwICAg&c=shNJtf5dKgNcPZ6Yh64b-A&r=bwmts2__cVwcBAFQqjvgnZCTFW2upB74SSUBWpbFWfM&m=7S5JpKoEdICnDQnIBnQ7fLaKQtCYb66nlcpRU_1NTJE&s=xRVELMGEjt2dwt_exZ63xZBxAVTNfvd4Co9Hk4UQVa0&e= ")
+}
+library(XML)
+  
+#Install and attach EWCE
+if(!"EWCE" %in% rownames(installed.packages())){
+  install_github("nathanskene/ewce")
+}  
+library(EWCE)
+
+```
+
+```{r EWCE analysis}
+load("YOUR_CTD_OBJECT")
+load("YOUR_BULK_RNAseq")
+
+source("EWCE_main_script.R", local = knitr::knit_global())
+# or source("EWCE_main_script_first_half_only.R", local = knitr::knit_global())
+# this second source_script skips the individual gene analysis and runs much more quickly
+my_full_results <- analyze_using_EWCE(tissue_data = de_res_2, 
+                                      sort_by_col = 4, 
+                                      hgnc_names_col = 8, 
+                                      cell_type_data = ctd, 
+                                      annotation_levels = 2, 
+                                      tissue_data_species = "human", 
+                                      cell_type_data_species = "mouse", 
+                                      gene_threshold = 250, 
+                                      bootstrap_reps = 1000, 
+                                      output_name = "EWCE_output_YOUR_NAME.RData")
+
+
+load("EWCE_output_YOUR_NAME.RData")
+
+```
